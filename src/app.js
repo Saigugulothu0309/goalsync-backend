@@ -24,13 +24,24 @@ app.get('/health', (req, res) => {
 });
 
 // ── API ROUTES ────────────────────────────────────────────────
+
+app.get('/debug', (req, res) => {
+  res.json({
+    has_db_url: !!process.env.DATABASE_URL,
+    db_url_start: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 40) : 'MISSING',
+    has_jwt: !!process.env.JWT_SECRET,
+    node_env: process.env.NODE_ENV,
+    port: process.env.PORT
+  });
+});
+
 app.use('/api', routes);
 
 // ── ERROR HANDLING ────────────────────────────────────────────
 app.use(notFound);
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`\n🚀 AtomQuest API running on port ${PORT}`);
   console.log(`   Environment : ${process.env.NODE_ENV || 'development'}`);
