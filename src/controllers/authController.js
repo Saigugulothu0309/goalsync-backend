@@ -37,27 +37,32 @@ const register = asyncHandler(async (req, res) => {
 });
 
 // POST /api/auth/login
-const login = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-  const result = await query(
-    'SELECT id, name, email, password_hash, role, department, is_active FROM users WHERE email = $1',
-    [email]
-  );
+    const result = await query(
+      'SELECT id, name, email, password_hash, role, department, is_active FROM users WHERE email = $1',
+      [email]
+    );
 
-  const user = result.rows[0];
-  if (!user || !user.is_active) {
-    return res.status(401).json({ error: 'Invalid credentials or account inactive.' });
+    const user = result.rows[0];
+    if (!user || !user.is_active) {
+      return res.status(401).json({ error: 'Invalid credentials or account inactive.' });
+    }
+
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) {
+      return res.status(401).json({ error: 'Invalid credentials.' });
+    }
+
+    const { password_hash, ...safeUser } = user;
+    res.json({ user: safeUser, token: generateToken(safeUser) });
+  } catch (err) {
+    console.error('[LOGIN ERROR DETAIL]', err.message, err.stack);
+    res.status(500).json({ error: err.message });
   }
-
-  const valid = await bcrypt.compare(password, user.password_hash);
-  if (!valid) {
-    return res.status(401).json({ error: 'Invalid credentials.' });
-  }
-
-  const { password_hash, ...safeUser } = user;
-  res.json({ user: safeUser, token: generateToken(safeUser) });
-});
+};
 
 // GET /api/auth/me
 const me = asyncHandler(async (req, res) => {
